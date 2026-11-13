@@ -34,9 +34,36 @@ namespace Business.Services
             }
         }
 
-        public async Task<List<Doctor>> GetAllDoctorsAsync()
+        public async Task<List<Doctor>> GetAllDoctorsAsync(string? search , string? specialty, string? sortOrder)
         {
-            return await context_new.Doctors.Include(x=>x.DoctorPatients).ThenInclude(x=>x.Patient).ToListAsync();
+            var query = context_new.Doctors.Include(d => d.Hospital).Where(d => true);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query=query.Where(d=>d.FirstName.Contains(search)||d.LastName.Contains(search));
+            }
+
+            if (!string.IsNullOrWhiteSpace(specialty))
+            {
+                query=query.Where(d=>d.Specialty.Contains(specialty));
+            }
+
+            switch (sortOrder)
+            {
+                case "name_asc":
+                    query=query.OrderBy(d=>d.FirstName).ThenBy(d=>d.LastName);
+                    break;
+                case "name_desc":
+                    query = query.OrderByDescending(d => d.FirstName).ThenByDescending(d => d.LastName);
+                    break;
+                case "specialty":
+                    query = query.OrderBy(d => d.Specialty).ThenBy(d => d.FirstName);
+                    break;
+                default:
+                    query = query.OrderBy(d => d.FirstName).ThenBy(d => d.LastName);
+                    break;
+            }
+            return await query.ToListAsync();
         }
 
         public async Task<Doctor?> GetDoctorAsync(int id)
